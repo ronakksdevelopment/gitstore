@@ -1,0 +1,13 @@
+{
+  "id": "example-app",
+  "name": "Example App",
+  "author": "your-github-username",
+  "desc": "One short sentence describing what it does. Under 100 characters.",
+  "longDesc": "A longer description shown on the detail page. A few sentences about what the app does, who it's for, and anything notable about how it works.",
+  "url": "https://your-username.github.io/your-repo/",
+  "category": "productivity",
+  "color": "#58A6FF",
+  "icon": "",
+  "added": "2026-07-28",
+  "schemaVersion": 1
+}
