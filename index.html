@@ -1,1 +1,461 @@
-index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>gitstore — PWAs, hosted on GitHub</title>
+<meta name="description" content="An open-source, GitHub-only app store for PWAs. Every listing is a file in a repo.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0D1117;
+    --bg-elevated:#161B22;
+    --bg-hover:#1C2128;
+    --border:#21262D;
+    --border-strong:#30363D;
+    --text:#E6EDF3;
+    --text-secondary:#8B949E;
+    --text-muted:#6E7681;
+    --accent:#3FB950;
+    --accent-dim:#2EA043;
+    --accent-bg:rgba(63,185,80,0.1);
+    --link:#58A6FF;
+    --danger:#F85149;
+    --font-body:'Inter',sans-serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--font-body);
+    line-height:1.5;
+    min-height:100vh;
+  }
+  a{color:inherit;text-decoration:none;}
+  ::selection{background:var(--accent-bg);color:var(--accent);}
+
+  /* ---------- topbar ---------- */
+  .topbar{
+    border-bottom:1px solid var(--border);
+    background:var(--bg);
+    position:sticky;top:0;z-index:50;
+  }
+  .topbar-inner{
+    max-width:1200px;margin:0 auto;padding:14px 24px;
+    display:flex;align-items:center;gap:20px;
+  }
+  .logo{
+    font-family:var(--font-mono);font-weight:600;font-size:17px;
+    display:flex;align-items:center;gap:8px;white-space:nowrap;
+    cursor:pointer;
+  }
+  .logo .prompt{color:var(--accent);}
+  .logo .cursor{
+    display:inline-block;width:8px;height:16px;background:var(--accent);
+    animation:blink 1.1s step-end infinite;
+  }
+  @keyframes blink{50%{opacity:0;}}
+  .search-wrap{flex:1;max-width:520px;}
+  .search-box{
+    display:flex;align-items:center;gap:8px;
+    background:var(--bg-elevated);
+    border:1px solid var(--border-strong);
+    border-radius:var(--radius);
+    padding:8px 12px;
+    font-family:var(--font-mono);font-size:13px;
+    color:var(--text-secondary);
+    transition:border-color .15s;
+  }
+  .search-box:focus-within{border-color:var(--link);}
+  .search-box input{
+    background:none;border:none;outline:none;color:var(--text);
+    font-family:var(--font-mono);font-size:13px;flex:1;
+  }
+  .search-box input::placeholder{color:var(--text-muted);}
+  .topbar-actions{display:flex;align-items:center;gap:10px;margin-left:auto;}
+  .btn{
+    font-family:var(--font-body);font-size:13px;font-weight:500;
+    padding:6px 14px;border-radius:var(--radius);border:1px solid var(--border-strong);
+    background:var(--bg-elevated);color:var(--text);cursor:pointer;
+    transition:background .15s,border-color .15s;
+    display:inline-flex;align-items:center;gap:6px;
+  }
+  .btn:hover{background:var(--bg-hover);border-color:var(--text-muted);}
+  .btn-primary{
+    background:var(--accent);color:#0D1117;border-color:var(--accent);font-weight:600;
+  }
+  .btn-primary:hover{background:var(--accent-dim);border-color:var(--accent-dim);}
+
+  /* ---------- hero ---------- */
+  .hero{
+    max-width:1200px;margin:0 auto;padding:56px 24px 32px;
+  }
+  .hero-eyebrow{
+    font-family:var(--font-mono);font-size:12px;color:var(--accent);
+    display:flex;align-items:center;gap:8px;margin-bottom:14px;
+  }
+  .hero-eyebrow::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--accent);}
+  .hero h1{
+    font-size:34px;font-weight:700;letter-spacing:-0.02em;margin-bottom:10px;max-width:640px;
+  }
+  .hero p{
+    color:var(--text-secondary);font-size:15px;max-width:560px;margin-bottom:4px;
+  }
+  .hero code{
+    font-family:var(--font-mono);background:var(--bg-elevated);
+    border:1px solid var(--border);padding:1px 6px;border-radius:4px;font-size:13px;color:var(--accent);
+  }
+
+  /* ---------- chips ---------- */
+  .chips-row{
+    max-width:1200px;margin:0 auto;padding:0 24px 28px;
+    display:flex;gap:8px;flex-wrap:wrap;
+  }
+  .chip{
+    font-family:var(--font-mono);font-size:12px;color:var(--text-secondary);
+    background:var(--bg-elevated);border:1px solid var(--border);
+    padding:6px 12px;border-radius:16px;cursor:pointer;
+    transition:all .15s;
+  }
+  .chip:hover{border-color:var(--text-muted);color:var(--text);}
+  .chip.active{background:var(--accent-bg);border-color:var(--accent-dim);color:var(--accent);}
+
+  /* ---------- grid ---------- */
+  .section-label{
+    max-width:1200px;margin:0 auto;padding:0 24px;
+    font-family:var(--font-mono);font-size:12px;color:var(--text-muted);
+    margin-bottom:14px;text-transform:uppercase;letter-spacing:.06em;
+  }
+  .grid{
+    max-width:1200px;margin:0 auto;padding:0 24px 60px;
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px;
+  }
+  .card{
+    background:var(--bg-elevated);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:18px;
+    cursor:pointer;
+    transition:border-color .15s,transform .15s;
+  }
+  .card:hover{border-color:var(--border-strong);transform:translateY(-1px);}
+  .card-top{display:flex;gap:12px;align-items:flex-start;margin-bottom:10px;}
+  .card-icon{
+    width:44px;height:44px;border-radius:9px;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    font-size:19px;font-weight:600;color:#0D1117;
+  }
+  .card-title{font-size:15px;font-weight:600;margin-bottom:2px;}
+  .card-author{font-family:var(--font-mono);font-size:11px;color:var(--text-muted);}
+  .card-desc{
+    color:var(--text-secondary);font-size:13px;line-height:1.55;
+    margin-bottom:14px;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  }
+  .card-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .card-tag{
+    font-family:var(--font-mono);font-size:11px;color:var(--text-muted);
+    display:flex;align-items:center;gap:5px;
+  }
+  .card-install{
+    font-family:var(--font-mono);font-size:11px;font-weight:600;
+    padding:5px 10px;border-radius:5px;border:1px solid var(--border-strong);
+    background:var(--bg);color:var(--text-secondary);
+    transition:all .15s;white-space:nowrap;
+  }
+  .card:hover .card-install{border-color:var(--accent-dim);color:var(--accent);}
+
+  /* ---------- empty state ---------- */
+  .empty{
+    max-width:1200px;margin:0 auto;padding:80px 24px;text-align:center;
+    color:var(--text-muted);font-family:var(--font-mono);font-size:13px;
+  }
+
+  /* ---------- footer ---------- */
+  footer{
+    border-top:1px solid var(--border);
+    padding:28px 24px;text-align:center;
+    color:var(--text-muted);font-size:12px;font-family:var(--font-mono);
+  }
+  footer a{color:var(--link);}
+
+  /* ---------- modal (detail view) ---------- */
+  .overlay{
+    position:fixed;inset:0;background:rgba(1,4,9,0.75);
+    display:none;align-items:flex-start;justify-content:center;
+    padding:40px 20px;overflow-y:auto;z-index:100;
+  }
+  .overlay.open{display:flex;}
+  .modal{
+    background:var(--bg-elevated);border:1px solid var(--border-strong);
+    border-radius:12px;max-width:640px;width:100%;
+    animation:pop .15s ease-out;
+  }
+  @keyframes pop{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+  .modal-header{
+    padding:22px 24px;border-bottom:1px solid var(--border);
+    display:flex;gap:16px;align-items:flex-start;
+  }
+  .modal-icon{
+    width:60px;height:60px;border-radius:12px;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    font-size:26px;font-weight:600;color:#0D1117;
+  }
+  .modal-title{font-size:20px;font-weight:700;margin-bottom:3px;}
+  .modal-author{font-family:var(--font-mono);font-size:12px;color:var(--text-muted);margin-bottom:10px;}
+  .modal-close{
+    margin-left:auto;background:none;border:none;color:var(--text-muted);
+    font-size:20px;cursor:pointer;line-height:1;padding:4px;
+  }
+  .modal-close:hover{color:var(--text);}
+  .modal-body{padding:22px 24px;}
+  .modal-desc{color:var(--text-secondary);font-size:14px;line-height:1.65;margin-bottom:20px;}
+  .modal-actions{display:flex;gap:10px;margin-bottom:22px;}
+  .modal-meta{
+    font-family:var(--font-mono);font-size:12px;color:var(--text-muted);
+    background:var(--bg);border:1px solid var(--border);border-radius:8px;
+    padding:14px 16px;
+  }
+  .modal-meta-row{display:flex;justify-content:space-between;padding:3px 0;}
+  .modal-meta-row span:first-child{color:var(--text-muted);}
+  .modal-meta-row span:last-child{color:var(--text-secondary);}
+  .toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--bg-elevated);border:1px solid var(--accent-dim);color:var(--accent);
+    font-family:var(--font-mono);font-size:13px;padding:10px 18px;border-radius:8px;
+    opacity:0;pointer-events:none;transition:all .25s;z-index:200;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  @media(max-width:640px){
+    .hero h1{font-size:26px;}
+    .topbar-inner{flex-wrap:wrap;}
+    .search-wrap{order:3;max-width:100%;}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="logo" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+      <span class="prompt">$</span> gitstore<span class="cursor"></span>
+    </div>
+    <div class="search-wrap">
+      <div class="search-box">
+        <span>🔍</span>
+        <input id="searchInput" type="text" placeholder="search apps..." oninput="renderGrid()">
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn" onclick="alert('Coming in a later step: connect your GitHub token to submit an app.')">Sign in</button>
+      <button class="btn btn-primary" onclick="alert('Coming in a later step: the submission form.')">+ Submit app</button>
+    </div>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="hero-eyebrow">100% static · hosted on GitHub Pages</div>
+  <h1>PWAs, listed as files in a repo.</h1>
+  <p>No servers, no accounts beyond GitHub itself. Every app here is a <code>.json</code> file, reviewed as a pull request. Fork it, run your own.</p>
+</div>
+
+<div class="chips-row" id="chipsRow"></div>
+
+<div class="section-label">// apps</div>
+<div class="grid" id="grid"></div>
+
+<footer>
+  gitstore is open source · <a href="#">MIT licensed</a> · <a href="#">view on GitHub</a> · listings are submitted by users and not vetted for content — see disclaimer
+</footer>
+
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modal"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const APPS = [
+  {
+    id:'hoppingsite',
+    name:'HoppingSite',
+    author:'hoppingsite',
+    desc:'Publish a single index.html straight to GitHub Pages. Free static hosting, no account walls.',
+    longDesc:'One index.html file with your CSS and JS inside it is all it takes. Drop it in, pick a subdomain, and HoppingSite deploys it straight to GitHub Pages — free and open source, forever.',
+    url:'https://hoppingsite.github.io/sitehosting/',
+    category:'developer-tools',
+    color:'#F44336',
+    initial:'H',
+    added:'2026-06-12'
+  },
+  {
+    id:'pixelnotes',
+    name:'PixelNotes',
+    author:'ada-writes',
+    desc:'A distraction-free note-taking PWA with offline sync and markdown support.',
+    longDesc:'PixelNotes keeps things simple: markdown in, clean typography out. Works fully offline once installed, and syncs quietly when you are back online.',
+    url:'#',
+    category:'productivity',
+    color:'#58A6FF',
+    initial:'P',
+    added:'2026-05-02'
+  },
+  {
+    id:'tuneloop',
+    name:'TuneLoop',
+    author:'kbeats',
+    desc:'A tiny browser-based loop pedal for practicing guitar and vocals.',
+    longDesc:'Record a loop, layer on top, tweak tempo — all client-side, all in your browser, installable so it feels like a real app on your phone or desktop.',
+    url:'#',
+    category:'music',
+    color:'#D2A8FF',
+    initial:'T',
+    added:'2026-04-18'
+  },
+  {
+    id:'habitgrid',
+    name:'HabitGrid',
+    author:'florencedev',
+    desc:'A GitHub-contributions-style habit tracker. Green squares, but for your life.',
+    longDesc:'Mark a habit done each day and watch your own contribution graph fill in. Local-first, exportable, no accounts required.',
+    url:'#',
+    category:'productivity',
+    color:'#3FB950',
+    initial:'H',
+    added:'2026-06-30'
+  },
+  {
+    id:'quickconvert',
+    name:'QuickConvert',
+    author:'unitnerd',
+    desc:'Unit and currency converter that works fully offline once installed.',
+    longDesc:'Every unit you actually use, cached for offline use. No ads, no tracking, just conversions.',
+    url:'#',
+    category:'utilities',
+    color:'#F0883E',
+    initial:'Q',
+    added:'2026-03-11'
+  },
+  {
+    id:'inkboard',
+    name:'Inkboard',
+    author:'sam-draws',
+    desc:'A minimal sketchpad PWA for quick doodles and diagramming on the go.',
+    longDesc:'Pressure-sensitive drawing in the browser, saved locally, exportable as SVG or PNG. Built for quick thoughts, not a full illustration suite.',
+    url:'#',
+    category:'creative',
+    color:'#F778BA',
+    initial:'I',
+    added:'2026-02-27'
+  }
+];
+
+const CATEGORIES = ['all','developer-tools','productivity','music','utilities','creative'];
+let activeCategory = 'all';
+
+function renderChips(){
+  const row = document.getElementById('chipsRow');
+  row.innerHTML = CATEGORIES.map(c =>
+    `<div class="chip ${c===activeCategory?'active':''}" onclick="setCategory('${c}')">${c==='all'?'all':'#'+c}</div>`
+  ).join('');
+}
+
+function setCategory(c){
+  activeCategory = c;
+  renderChips();
+  renderGrid();
+}
+
+function renderGrid(){
+  const grid = document.getElementById('grid');
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  const filtered = APPS.filter(a=>{
+    const matchesCat = activeCategory==='all' || a.category===activeCategory;
+    const matchesQ = !q || a.name.toLowerCase().includes(q) || a.desc.toLowerCase().includes(q) || a.author.toLowerCase().includes(q);
+    return matchesCat && matchesQ;
+  });
+
+  if(filtered.length===0){
+    grid.innerHTML = '';
+    grid.insertAdjacentHTML('afterend', '');
+    document.getElementById('grid').innerHTML = `<div class="empty">no matches for "<span style="color:var(--text)">${q||activeCategory}</span>" — try a different search, or submit it yourself</div>`;
+    return;
+  }
+
+  grid.innerHTML = filtered.map(a => `
+    <div class="card" onclick="openModal('${a.id}')">
+      <div class="card-top">
+        <div class="card-icon" style="background:${a.color}">${a.initial}</div>
+        <div>
+          <div class="card-title">${a.name}</div>
+          <div class="card-author">@${a.author}</div>
+        </div>
+      </div>
+      <div class="card-desc">${a.desc}</div>
+      <div class="card-footer">
+        <div class="card-tag">#${a.category}</div>
+        <div class="card-install">git clone →</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openModal(id){
+  const a = APPS.find(x=>x.id===id);
+  const modal = document.getElementById('modal');
+  modal.innerHTML = `
+    <div class="modal-header">
+      <div class="modal-icon" style="background:${a.color}">${a.initial}</div>
+      <div>
+        <div class="modal-title">${a.name}</div>
+        <div class="modal-author">submitted by @${a.author} · added ${a.added}</div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-desc">${a.longDesc}</div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" onclick="installApp('${a.name}','${a.url}')">Install</button>
+        <button class="btn" onclick="window.open('${a.url}','_blank')">Open in browser</button>
+      </div>
+      <div class="modal-meta">
+        <div class="modal-meta-row"><span>category</span><span>#${a.category}</span></div>
+        <div class="modal-meta-row"><span>url</span><span>${a.url}</span></div>
+        <div class="modal-meta-row"><span>listing</span><span>apps/${a.id}.json</span></div>
+      </div>
+    </div>
+  `;
+  document.getElementById('overlay').classList.add('open');
+}
+
+function closeModal(){
+  document.getElementById('overlay').classList.remove('open');
+}
+
+function installApp(name, url){
+  // Real PWA install uses the browser's beforeinstallprompt event on the
+  // target site itself. From a directory page we can only deep-link there;
+  // true one-click install requires the app to be opened first.
+  showToast(`Opening ${name} — use your browser's install prompt once it loads`);
+  setTimeout(()=>{ if(url && url!=='#') window.open(url,'_blank'); }, 600);
+}
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2600);
+}
+
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
+
+renderChips();
+renderGrid();
+</script>
+
+</body>
+</html>
