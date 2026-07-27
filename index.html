@@ -250,8 +250,8 @@
         <input id="searchInput" type="text" placeholder="search apps..." oninput="renderGrid()">
       </div>
     </div>
-    <div class="topbar-actions">
-      <button class="btn" onclick="alert('Coming in a later step: connect your GitHub token to submit an app.')">Sign in</button>
+    <div class="topbar-actions" id="authArea">
+      <button class="btn" id="signInBtn" onclick="openAuthModal()">Sign in</button>
       <button class="btn btn-primary" onclick="alert('Coming in a later step: the submission form.')">+ Submit app</button>
     </div>
   </div>
@@ -274,6 +274,49 @@
 
 <div class="overlay" id="overlay" onclick="if(event.target===this)closeModal()">
   <div class="modal" id="modal"></div>
+</div>
+
+<div class="overlay" id="authOverlay" onclick="if(event.target===this)closeAuthModal()">
+  <div class="modal" id="authModal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Connect GitHub</div>
+        <div class="modal-author">no server involved — your token stays on this device</div>
+      </div>
+      <button class="modal-close" onclick="closeAuthModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-desc">
+        gitstore has no backend. To submit an app, you connect a GitHub <b>fine-grained personal access token</b> — it's stored only in this browser's local storage and used to call GitHub's API directly from your device. It never passes through any server of ours.
+      </div>
+
+      <div class="modal-meta" style="margin-bottom:18px;">
+        <div style="font-family:var(--font-mono);font-size:12px;color:var(--text);font-weight:600;margin-bottom:8px;">how to create one</div>
+        <div style="font-family:var(--font-body);font-size:13px;color:var(--text-secondary);line-height:1.7;">
+          1. Go to <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" style="color:var(--link);">github.com/settings/personal-access-tokens/new</a><br>
+          2. Under <b style="color:var(--text)">Repository access</b>, choose <b style="color:var(--text)">Only select repositories</b> → pick this repo (<code style="font-family:var(--font-mono);background:var(--bg);padding:1px 5px;border-radius:4px;">gitstore</code>)<br>
+          3. Under <b style="color:var(--text)">Permissions → Repository permissions</b>, set <b style="color:var(--text)">Contents</b> and <b style="color:var(--text)">Pull requests</b> to <b style="color:var(--text)">Read and write</b><br>
+          4. Generate the token and copy it — GitHub only shows it once
+        </div>
+      </div>
+
+      <div style="margin-bottom:10px;font-family:var(--font-mono);font-size:12px;color:var(--text-secondary);">paste your token</div>
+      <div class="search-box" style="margin-bottom:6px;">
+        <span>🔑</span>
+        <input id="tokenInput" type="password" placeholder="github_pat_XXXXXXXXXXXXXXXXXXXX" style="font-family:var(--font-mono);">
+      </div>
+      <div id="tokenError" style="display:none;color:var(--danger);font-size:12px;font-family:var(--font-mono);margin-bottom:10px;"></div>
+
+      <div class="modal-actions" style="margin-top:16px;">
+        <button class="btn btn-primary" id="tokenSubmitBtn" onclick="submitToken()">Connect</button>
+        <button class="btn" onclick="closeAuthModal()">Cancel</button>
+      </div>
+
+      <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border);font-size:12px;color:var(--text-muted);line-height:1.6;">
+        Your token is saved in this browser's <code style="font-family:var(--font-mono);">localStorage</code> only. It is never sent to any server other than GitHub's own API. Revoke it anytime from <a href="https://github.com/settings/tokens" target="_blank" style="color:var(--link);">github.com/settings/tokens</a>, or click Sign out below to clear it from this device.
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -483,7 +526,105 @@ function showToast(msg){
   setTimeout(()=>t.classList.remove('show'), 2600);
 }
 
-document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ closeModal(); closeAuthModal(); } });
+
+// ---------- GitHub token auth (pure client-side, no server) ----------
+const TOKEN_KEY = 'gitstore_gh_token';
+const USER_KEY = 'gitstore_gh_user';
+
+function openAuthModal(){
+  document.getElementById('tokenError').style.display = 'none';
+  document.getElementById('tokenInput').value = '';
+  document.getElementById('authOverlay').classList.add('open');
+}
+function closeAuthModal(){
+  document.getElementById('authOverlay').classList.remove('open');
+}
+
+function showTokenError(msg){
+  const el = document.getElementById('tokenError');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+async function submitToken(){
+  const input = document.getElementById('tokenInput');
+  const token = input.value.trim();
+  const btn = document.getElementById('tokenSubmitBtn');
+
+  if(!token){
+    showTokenError('paste a token first');
+    return;
+  }
+  // Fine-grained PATs start with github_pat_ ; classic ones with ghp_.
+  // We accept either, but nudge toward fine-grained since it's the safer, scoped option.
+  if(!/^(github_pat_|ghp_)/.test(token)){
+    showTokenError("that doesn't look like a GitHub token — it should start with github_pat_ or ghp_");
+    return;
+  }
+
+  btn.textContent = 'Verifying…';
+  btn.disabled = true;
+
+  try{
+    const res = await fetch('https://api.github.com/user', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/vnd.github+json'
+      }
+    });
+    if(!res.ok){
+      throw new Error(res.status === 401 ? 'invalid or expired token' : `GitHub returned ${res.status}`);
+    }
+    const user = await res.json();
+
+    localStorage.setItem(TOKEN_KEY, token);
+    localStorage.setItem(USER_KEY, user.login);
+
+    closeAuthModal();
+    renderAuthState();
+    showToast(`connected as @${user.login}`);
+  }catch(e){
+    showTokenError(e.message || 'could not verify that token');
+  }finally{
+    btn.textContent = 'Connect';
+    btn.disabled = false;
+  }
+}
+
+function signOut(){
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
+  renderAuthState();
+  showToast('signed out — token cleared from this device');
+}
+
+function getStoredToken(){
+  return localStorage.getItem(TOKEN_KEY);
+}
+function getStoredUser(){
+  return localStorage.getItem(USER_KEY);
+}
+
+function renderAuthState(){
+  const area = document.getElementById('authArea');
+  const user = getStoredUser();
+
+  if(user){
+    area.innerHTML = `
+      <div class="chip" style="cursor:default;color:var(--accent);border-color:var(--accent-dim);background:var(--accent-bg);">@${user}</div>
+      <button class="btn" onclick="signOut()">Sign out</button>
+      <button class="btn btn-primary" onclick="alert('Coming in a later step: the submission form.')">+ Submit app</button>
+    `;
+  }else{
+    area.innerHTML = `
+      <button class="btn" onclick="openAuthModal()">Sign in</button>
+      <button class="btn btn-primary" onclick="openAuthModal()">+ Submit app</button>
+    `;
+  }
+}
+
+renderAuthState();
 
 renderChips();
 loadApps();
