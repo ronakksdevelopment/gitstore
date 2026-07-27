@@ -279,83 +279,101 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const APPS = [
-  {
-    id:'hoppingsite',
-    name:'HoppingSite',
-    author:'hoppingsite',
-    desc:'Publish a single index.html straight to GitHub Pages. Free static hosting, no account walls.',
-    longDesc:'One index.html file with your CSS and JS inside it is all it takes. Drop it in, pick a subdomain, and HoppingSite deploys it straight to GitHub Pages — free and open source, forever.',
-    url:'https://hoppingsite.github.io/sitehosting/',
-    category:'developer-tools',
-    color:'#F44336',
-    initial:'H',
-    added:'2026-06-12'
-  },
-  {
-    id:'pixelnotes',
-    name:'PixelNotes',
-    author:'ada-writes',
-    desc:'A distraction-free note-taking PWA with offline sync and markdown support.',
-    longDesc:'PixelNotes keeps things simple: markdown in, clean typography out. Works fully offline once installed, and syncs quietly when you are back online.',
-    url:'#',
-    category:'productivity',
-    color:'#58A6FF',
-    initial:'P',
-    added:'2026-05-02'
-  },
-  {
-    id:'tuneloop',
-    name:'TuneLoop',
-    author:'kbeats',
-    desc:'A tiny browser-based loop pedal for practicing guitar and vocals.',
-    longDesc:'Record a loop, layer on top, tweak tempo — all client-side, all in your browser, installable so it feels like a real app on your phone or desktop.',
-    url:'#',
-    category:'music',
-    color:'#D2A8FF',
-    initial:'T',
-    added:'2026-04-18'
-  },
-  {
-    id:'habitgrid',
-    name:'HabitGrid',
-    author:'florencedev',
-    desc:'A GitHub-contributions-style habit tracker. Green squares, but for your life.',
-    longDesc:'Mark a habit done each day and watch your own contribution graph fill in. Local-first, exportable, no accounts required.',
-    url:'#',
-    category:'productivity',
-    color:'#3FB950',
-    initial:'H',
-    added:'2026-06-30'
-  },
-  {
-    id:'quickconvert',
-    name:'QuickConvert',
-    author:'unitnerd',
-    desc:'Unit and currency converter that works fully offline once installed.',
-    longDesc:'Every unit you actually use, cached for offline use. No ads, no tracking, just conversions.',
-    url:'#',
-    category:'utilities',
-    color:'#F0883E',
-    initial:'Q',
-    added:'2026-03-11'
-  },
-  {
-    id:'inkboard',
-    name:'Inkboard',
-    author:'sam-draws',
-    desc:'A minimal sketchpad PWA for quick doodles and diagramming on the go.',
-    longDesc:'Pressure-sensitive drawing in the browser, saved locally, exportable as SVG or PNG. Built for quick thoughts, not a full illustration suite.',
-    url:'#',
-    category:'creative',
-    color:'#F778BA',
-    initial:'I',
-    added:'2026-02-27'
-  }
-];
+// ---------- GitHub-backed data layer ----------
+// Reads every file in apps/ from this repo via the public GitHub API.
+// No auth needed for public reads.
+const GH_OWNER = 'ronakksdevelopment';
+const GH_REPO = 'gitstore';
+const GH_BRANCH = 'main';
+const CACHE_KEY = 'gitstore_apps_cache_v1';
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 const CATEGORIES = ['all','developer-tools','productivity','music','utilities','creative'];
 let activeCategory = 'all';
+let APPS = [];
+let loadState = 'loading'; // 'loading' | 'loaded' | 'error'
+
+function initialFor(name){
+  return (name || '?').trim().charAt(0).toUpperCase();
+}
+
+async function fetchAppsFromGitHub(){
+  const listUrl = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/apps?ref=${GH_BRANCH}`;
+  const listRes = await fetch(listUrl, { headers: { 'Accept': 'application/vnd.github+json' } });
+  if(!listRes.ok){
+    throw new Error(`GitHub API returned ${listRes.status}`);
+  }
+  const entries = await listRes.json();
+  const jsonFiles = entries.filter(e => e.type === 'file' && e.name.endsWith('.json'));
+
+  const results = await Promise.allSettled(jsonFiles.map(async file => {
+    const res = await fetch(file.download_url);
+    if(!res.ok) throw new Error(`Failed to fetch ${file.name}`);
+    const data = await res.json();
+    return normalizeApp(data, file.name);
+  }));
+
+  return results
+    .filter(r => r.status === 'fulfilled' && r.value)
+    .map(r => r.value)
+    .sort((a,b) => (b.added || '').localeCompare(a.added || ''));
+}
+
+function normalizeApp(data, filename){
+  if(!data || typeof data !== 'object') return null;
+  if(!data.id || !data.name || !data.url) return null;
+  return {
+    id: data.id,
+    name: data.name,
+    author: data.author || 'unknown',
+    desc: data.desc || '',
+    longDesc: data.longDesc || data.desc || '',
+    url: data.url,
+    category: data.category || 'utilities',
+    color: data.color || '#8B949E',
+    initial: initialFor(data.name),
+    added: data.added || '',
+    _file: filename
+  };
+}
+
+function readCache(){
+  try{
+    const raw = localStorage.getItem(CACHE_KEY);
+    if(!raw) return null;
+    const parsed = JSON.parse(raw);
+    if(Date.now() - parsed.ts > CACHE_TTL_MS) return null;
+    return parsed.apps;
+  }catch(e){ return null; }
+}
+
+function writeCache(apps){
+  try{
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), apps }));
+  }catch(e){ /* non-fatal */ }
+}
+
+async function loadApps(forceRefresh){
+  const cached = !forceRefresh && readCache();
+  if(cached){
+    APPS = cached;
+    loadState = 'loaded';
+    renderGrid();
+    return;
+  }
+  loadState = 'loading';
+  renderGrid();
+  try{
+    const apps = await fetchAppsFromGitHub();
+    APPS = apps;
+    loadState = 'loaded';
+    writeCache(apps);
+  }catch(e){
+    console.error('gitstore: failed to load apps from GitHub', e);
+    loadState = 'error';
+  }
+  renderGrid();
+}
 
 function renderChips(){
   const row = document.getElementById('chipsRow');
@@ -372,6 +390,17 @@ function setCategory(c){
 
 function renderGrid(){
   const grid = document.getElementById('grid');
+
+  if(loadState === 'loading'){
+    grid.innerHTML = `<div class="empty">fetching apps/ from GitHub…</div>`;
+    return;
+  }
+  if(loadState === 'error'){
+    grid.innerHTML = `<div class="empty">couldn't reach the GitHub API right now.<br><br>
+      <button class="btn" onclick="loadApps(true)">try again</button></div>`;
+    return;
+  }
+
   const q = document.getElementById('searchInput').value.trim().toLowerCase();
   const filtered = APPS.filter(a=>{
     const matchesCat = activeCategory==='all' || a.category===activeCategory;
@@ -379,10 +408,13 @@ function renderGrid(){
     return matchesCat && matchesQ;
   });
 
+  if(APPS.length===0){
+    grid.innerHTML = `<div class="empty">no apps here yet — be the first to submit one</div>`;
+    return;
+  }
+
   if(filtered.length===0){
-    grid.innerHTML = '';
-    grid.insertAdjacentHTML('afterend', '');
-    document.getElementById('grid').innerHTML = `<div class="empty">no matches for "<span style="color:var(--text)">${q||activeCategory}</span>" — try a different search, or submit it yourself</div>`;
+    grid.innerHTML = `<div class="empty">no matches for "<span style="color:var(--text)">${q||activeCategory}</span>" — try a different search, or submit it yourself</div>`;
     return;
   }
 
@@ -454,7 +486,7 @@ function showToast(msg){
 document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
 
 renderChips();
-renderGrid();
+loadApps();
 </script>
 
 </body>
