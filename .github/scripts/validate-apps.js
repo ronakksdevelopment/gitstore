@@ -132,6 +132,22 @@ function main() {
       errors.push(`\`${file}\`: \`url\` ("${data.url}") is not a valid URL.`);
     }
 
+    // Check 5b: icon is optional, but if present must be a valid https:// URL.
+    if (data.icon !== undefined && data.icon !== '') {
+      if (typeof data.icon !== 'string') {
+        errors.push(`\`${file}\`: \`icon\`, if provided, must be a string URL.`);
+      } else {
+        try {
+          const iconUrl = new URL(data.icon);
+          if (iconUrl.protocol !== 'https:') {
+            errors.push(`\`${file}\`: \`icon\` must start with https:// (got "${data.icon}"), or be omitted/blank.`);
+          }
+        } catch (e) {
+          errors.push(`\`${file}\`: \`icon\` ("${data.icon}") is not a valid URL — leave it blank if you don't have one.`);
+        }
+      }
+    }
+
     if (!ALLOWED_CATEGORIES.includes(data.category)) {
       errors.push(`\`${file}\`: \`category\` must be one of ${ALLOWED_CATEGORIES.map(c => `"${c}"`).join(', ')} — got "${data.category}".`);
     }
