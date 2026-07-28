@@ -53,7 +53,8 @@
     cursor:pointer;
   }
   .logo-img{
-    width:34px;height:34px;border-radius:7px;object-fit:cover;
+    width:34px;height:34px;border-radius:7px;object-fit:contain;
+    background:var(--bg);
     display:block;
   }
   .logo .prompt{color:var(--accent);}
@@ -100,17 +101,15 @@
   }
   .hero-bg-logo{
     position:absolute;
-    top:50%;right:-90px;
-    width:420px;height:420px;
+    top:50%;right:-60px;
+    width:520px;height:520px;
     transform:translateY(-50%);
-    object-fit:cover;
-    border-radius:36px;
-    opacity:0.05;
-    filter:grayscale(1) brightness(1.4);
+    object-fit:contain;
+    opacity:0.10;
     pointer-events:none;
     z-index:0;
-    -webkit-mask-image:linear-gradient(to right, transparent, black 30%);
-    mask-image:linear-gradient(to right, transparent, black 30%);
+    -webkit-mask-image:linear-gradient(to right, transparent, black 35%);
+    mask-image:linear-gradient(to right, transparent, black 35%);
   }
   .hero{
     max-width:1200px;margin:0 auto;padding:56px 24px 32px;
