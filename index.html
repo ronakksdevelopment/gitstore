@@ -52,6 +52,10 @@
     display:flex;align-items:center;gap:8px;white-space:nowrap;
     cursor:pointer;
   }
+  .logo-img{
+    width:24px;height:24px;border-radius:5px;object-fit:cover;
+    display:block;
+  }
   .logo .prompt{color:var(--accent);}
   .logo .cursor{
     display:inline-block;width:8px;height:16px;background:var(--accent);
@@ -242,6 +246,7 @@
 <div class="topbar">
   <div class="topbar-inner">
     <div class="logo" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+      <img src="gitstore_logo.png" alt="gitstore logo" class="logo-img" onerror="this.style.display='none'">
       <span class="prompt">$</span> gitstore<span class="cursor"></span>
     </div>
     <div class="search-wrap">
@@ -320,6 +325,85 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<div class="overlay" id="submitOverlay" onclick="if(event.target===this)closeSubmitModal()">
+  <div class="modal" id="submitModal" style="max-width:560px;">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Submit an app</div>
+        <div class="modal-author">opens a pull request adding your listing to apps/</div>
+      </div>
+      <button class="modal-close" onclick="closeSubmitModal()">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <div id="disclaimerStep">
+        <div class="modal-desc">
+          Before you submit, please confirm:
+        </div>
+        <ul style="color:var(--text-secondary);font-size:13px;line-height:1.9;padding-left:20px;margin-bottom:18px;">
+          <li>You own or have the right to list this app.</li>
+          <li>It is a real, working PWA — not malware, not a copy of someone else's work, nothing illegal.</li>
+          <li>gitstore only links to your app; it doesn't host or vet its content — you're responsible for what it does.</li>
+          <li>Your listing is reviewed as a public pull request under your GitHub username before it goes live.</li>
+        </ul>
+        <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--text-secondary);margin-bottom:18px;cursor:pointer;">
+          <input type="checkbox" id="agreeCheckbox" style="margin-top:3px;">
+          I agree to the above and take responsibility for this submission.
+        </label>
+        <button class="btn btn-primary" onclick="proceedToForm()">Continue</button>
+      </div>
+
+      <div id="formStep" style="display:none;">
+        <div style="margin-bottom:12px;">
+          <div style="font-family:var(--font-mono);font-size:12px;color:var(--text-secondary);margin-bottom:6px;">app name</div>
+          <div class="search-box"><input id="f_name" type="text" placeholder="PixelNotes" oninput="syncSlug()"></div>
+        </div>
+        <div style="margin-bottom:12px;">
+          <div style="font-family:var(--font-mono);font-size:12px;color:var(--text-secondary);margin-bottom:6px;">slug (used as filename — lowercase, hyphens only)</div>
+          <div class="search-box"><input id="f_id" type="text" placeholder="pixel-notes" style="font-family:var(--font-mono);"></div>
+        </div>
+        <div style="margin-bottom:12px;">
+          <div style="font-family:var(--font-mono);font-size:12px;color:var(--text-secondary);margin-bottom:6px;">short description (under 100 chars)</div>
+          <div class="search-box"><input id="f_desc" type="text" maxlength="100" placeholder="A distraction-free note-taking PWA with offline sync."></div>
+        </div>
+        <div style="margin-bottom:12px;">
+          <div style="font-family:var(--font-mono);font-size:12px;color:var(--text-secondary);margin-bottom:6px;">longer description</div>
+          <textarea id="f_longDesc" rows="3" placeholder="A few sentences about what it does and who it's for." style="width:100%;background:var(--bg-elevated);border:1px solid var(--border-strong);border-radius:var(--radius);padding:10px 12px;color:var(--text);font-family:var(--font-body);font-size:13px;resize:vertical;"></textarea>
+        </div>
+        <div style="margin-bottom:12px;">
+          <div style="font-family:var(--font-mono);font-size:12px;color:var(--text-secondary);margin-bottom:6px;">PWA url</div>
+          <div class="search-box"><input id="f_url" type="text" placeholder="https://your-username.github.io/your-repo/" style="font-family:var(--font-mono);"></div>
+        </div>
+        <div style="display:flex;gap:12px;margin-bottom:12px;">
+          <div style="flex:1;">
+            <div style="font-family:var(--font-mono);font-size:12px;color:var(--text-secondary);margin-bottom:6px;">category</div>
+            <select id="f_category" style="width:100%;background:var(--bg-elevated);border:1px solid var(--border-strong);border-radius:var(--radius);padding:9px 10px;color:var(--text);font-family:var(--font-body);font-size:13px;">
+              <option value="developer-tools">developer-tools</option>
+              <option value="productivity">productivity</option>
+              <option value="music">music</option>
+              <option value="utilities">utilities</option>
+              <option value="creative">creative</option>
+            </select>
+          </div>
+          <div style="flex:1;">
+            <div style="font-family:var(--font-mono);font-size:12px;color:var(--text-secondary);margin-bottom:6px;">tile color</div>
+            <input id="f_color" type="color" value="#58A6FF" style="width:100%;height:38px;background:var(--bg-elevated);border:1px solid var(--border-strong);border-radius:var(--radius);cursor:pointer;">
+          </div>
+        </div>
+
+        <div id="submitError" style="display:none;color:var(--danger);font-size:12px;font-family:var(--font-mono);margin-bottom:10px;"></div>
+        <div id="submitProgress" style="display:none;color:var(--text-secondary);font-size:12px;font-family:var(--font-mono);margin-bottom:10px;"></div>
+
+        <div class="modal-actions">
+          <button class="btn btn-primary" id="submitAppBtn" onclick="submitApp()">Open pull request</button>
+          <button class="btn" onclick="closeSubmitModal()">Cancel</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
 
 <script>
 // ---------- GitHub-backed data layer ----------
@@ -614,7 +698,7 @@ function renderAuthState(){
     area.innerHTML = `
       <div class="chip" style="cursor:default;color:var(--accent);border-color:var(--accent-dim);background:var(--accent-bg);">@${user}</div>
       <button class="btn" onclick="signOut()">Sign out</button>
-      <button class="btn btn-primary" onclick="alert('Coming in a later step: the submission form.')">+ Submit app</button>
+      <button class="btn btn-primary" onclick="openSubmitModal()">+ Submit app</button>
     `;
   }else{
     area.innerHTML = `
@@ -626,8 +710,182 @@ function renderAuthState(){
 
 renderAuthState();
 
+// ---------- Submission flow: creates a branch, commits a JSON file, opens a PR ----------
+
+function slugify(str){
+  return str.toLowerCase().trim()
+    .replace(/[^a-z0-9\s-]/g,'')
+    .replace(/\s+/g,'-')
+    .replace(/-+/g,'-')
+    .replace(/^-|-$/g,'');
+}
+
+function openSubmitModal(){
+  document.getElementById('disclaimerStep').style.display = 'block';
+  document.getElementById('formStep').style.display = 'none';
+  document.getElementById('agreeCheckbox').checked = false;
+  document.getElementById('submitError').style.display = 'none';
+  document.getElementById('submitProgress').style.display = 'none';
+  ['f_name','f_id','f_desc','f_longDesc','f_url'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('submitOverlay').classList.add('open');
+}
+function closeSubmitModal(){
+  document.getElementById('submitOverlay').classList.remove('open');
+}
+function proceedToForm(){
+  if(!document.getElementById('agreeCheckbox').checked){
+    alert('Please check the agreement box to continue.');
+    return;
+  }
+  document.getElementById('disclaimerStep').style.display = 'none';
+  document.getElementById('formStep').style.display = 'block';
+}
+function syncSlug(){
+  const idField = document.getElementById('f_id');
+  if(!idField.dataset.touched){
+    idField.value = slugify(document.getElementById('f_name').value);
+  }
+}
+document.addEventListener('input', e=>{
+  if(e.target && e.target.id === 'f_id') e.target.dataset.touched = 'true';
+});
+
+function showSubmitError(msg){
+  const el = document.getElementById('submitError');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+function showSubmitProgress(msg){
+  const el = document.getElementById('submitProgress');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+async function ghApi(path, token, options={}){
+  const res = await fetch(`https://api.github.com${path}`, {
+    ...options,
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/vnd.github+json',
+      ...(options.body ? {'Content-Type':'application/json'} : {}),
+      ...(options.headers || {})
+    }
+  });
+  if(!res.ok){
+    const body = await res.json().catch(()=>({}));
+    throw new Error(body.message || `GitHub API error ${res.status}`);
+  }
+  return res.json();
+}
+
+function isLikelyReachableUrl(url){
+  try{
+    const u = new URL(url);
+    return u.protocol === 'https:';
+  }catch(e){
+    return false;
+  }
+}
+
+async function submitApp(){
+  const token = getStoredToken();
+  const username = getStoredUser();
+  if(!token || !username){
+    showSubmitError('you were signed out — please sign in again');
+    return;
+  }
+
+  const name = document.getElementById('f_name').value.trim();
+  const id = slugify(document.getElementById('f_id').value.trim());
+  const desc = document.getElementById('f_desc').value.trim();
+  const longDesc = document.getElementById('f_longDesc').value.trim();
+  const url = document.getElementById('f_url').value.trim();
+  const category = document.getElementById('f_category').value;
+  const color = document.getElementById('f_color').value;
+
+  if(!name || !id || !desc || !url){
+    showSubmitError('please fill in name, slug, description, and url');
+    return;
+  }
+  if(!isLikelyReachableUrl(url)){
+    showSubmitError('url must start with https://');
+    return;
+  }
+
+  const btn = document.getElementById('submitAppBtn');
+  btn.disabled = true;
+  document.getElementById('submitError').style.display = 'none';
+
+  const filePath = `apps/${id}.json`;
+  const branchName = `submit-${id}-${Date.now()}`;
+  const fileContent = JSON.stringify({
+    id, name, author: username, desc, longDesc: longDesc || desc,
+    url, category, color, icon: '',
+    added: new Date().toISOString().slice(0,10),
+    schemaVersion: 1
+  }, null, 2);
+
+  try{
+    showSubmitProgress('checking main branch…');
+    const mainRef = await ghApi(`/repos/${GH_OWNER}/${GH_REPO}/git/ref/heads/${GH_BRANCH}`, token);
+    const baseSha = mainRef.object.sha;
+
+    showSubmitProgress(`checking ${filePath} isn't already taken…`);
+    const existing = await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${filePath}?ref=${GH_BRANCH}`);
+    if(existing.status === 200){
+      throw new Error(`"${id}" is already taken — pick a different slug`);
+    }
+
+    showSubmitProgress('creating branch…');
+    await ghApi(`/repos/${GH_OWNER}/${GH_REPO}/git/refs`, token, {
+      method:'POST',
+      body: JSON.stringify({ ref:`refs/heads/${branchName}`, sha: baseSha })
+    });
+
+    showSubmitProgress('committing your listing…');
+    await ghApi(`/repos/${GH_OWNER}/${GH_REPO}/contents/${filePath}`, token, {
+      method:'PUT',
+      body: JSON.stringify({
+        message:`Add ${name} to apps/`,
+        content: btoa(unescape(encodeURIComponent(fileContent))),
+        branch: branchName
+      })
+    });
+
+    showSubmitProgress('opening pull request…');
+    const pr = await ghApi(`/repos/${GH_OWNER}/${GH_REPO}/pulls`, token, {
+      method:'POST',
+      body: JSON.stringify({
+        title:`Add ${name}`,
+        head: branchName,
+        base: GH_BRANCH,
+        body:`Submitted via the gitstore site by @${username}.\n\n- **App:** ${name}\n- **URL:** ${url}\n- **Category:** ${category}\n\nReview \`${filePath}\` and merge to publish.`
+      })
+    });
+
+    closeSubmitModal();
+    showToast('pull request opened — a maintainer will review it');
+    window.open(pr.html_url, '_blank');
+  }catch(e){
+    showSubmitError(e.message || 'something went wrong opening the pull request');
+  }finally{
+    btn.disabled = false;
+    document.getElementById('submitProgress').style.display = 'none';
+  }
+}
+
 renderChips();
 loadApps();
+
+// Cache-bust the logo daily so a swapped gitstore_logo.png shows up for
+// everyone quickly, without needing a version number bumped by hand.
+(function(){
+  const img = document.querySelector('.logo-img');
+  if(img){
+    const day = new Date().toISOString().slice(0,10);
+    img.src = `gitstore_logo.png?v=${day}`;
+  }
+})();
 </script>
 
 </body>
