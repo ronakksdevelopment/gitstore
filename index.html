@@ -202,15 +202,7 @@
   .skel-desc-line{height:10px;margin-bottom:6px;}
   .skel-footer{display:flex;justify-content:space-between;margin-top:14px;}
 
-  /* ---------- disclaimer ---------- */
-  .disclaimer{
-    border-top:1px solid var(--border);
-    background:var(--bg-elevated);
-  }
-  .disclaimer-inner{
-    max-width:800px;margin:0 auto;padding:40px 24px;
-    scroll-margin-top:70px;
-  }
+  /* ---------- disclaimer (modal content) ---------- */
   .disclaimer-body p{
     color:var(--text-secondary);font-size:13px;line-height:1.75;
     margin-bottom:14px;
@@ -314,22 +306,30 @@
 <div class="section-label">// apps</div>
 <div class="grid" id="grid"></div>
 
-<div class="disclaimer" id="disclaimer">
-  <div class="disclaimer-inner">
-    <div class="section-label" style="padding:0;margin-bottom:10px;">// disclaimer &amp; terms</div>
-    <div class="disclaimer-body">
-      <p>gitstore is a directory, not a host. Every listing you see is a JSON file submitted by a member of the public and merged into this repo as a pull request — <b>gitstore does not write, review, execute, or vet the content of any linked app</b> beyond the automated schema/format checks run on submission.</p>
-      <p>Clicking <b>Install</b> or <b>Open in browser</b> takes you directly to a URL supplied by the submitter, hosted entirely outside gitstore's control. Use the same judgment you would with any link on the internet before installing something.</p>
-      <p>Submitters are required to confirm, before their pull request is opened, that they own or have the right to list the app, that it is real and working, and that it isn't malware, stolen work, or illegal content. That confirmation is self-reported — it is not independently verified by gitstore.</p>
-      <p>Every submission is reviewed publicly as a pull request under the submitter's own GitHub username before it is merged. If you spot a listing that's broken, misleading, or harmful, please <a href="#" onclick="reportListing();return false;">report it</a> — reports open a public GitHub issue so anyone can follow the outcome.</p>
-      <p>This project is provided as-is, MIT licensed, with no warranty. Anyone can fork the repo and run their own copy under their own rules.</p>
+<footer>
+  gitstore is open source · <a href="https://github.com/ronakksdevelopment/gitstore/blob/main/LICENSE" target="_blank">MIT licensed</a> · <a href="https://github.com/ronakksdevelopment/gitstore" target="_blank">view on GitHub</a> · listings are submitted by users and not vetted for content — see <a href="#" onclick="openDisclaimerModal();return false;">disclaimer</a>
+</footer>
+
+<div class="overlay" id="disclaimerOverlay" onclick="if(event.target===this)closeDisclaimerModal()">
+  <div class="modal" id="disclaimerModal" style="max-width:640px;">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Disclaimer &amp; terms</div>
+        <div class="modal-author">what gitstore is, and isn't, responsible for</div>
+      </div>
+      <button class="modal-close" onclick="closeDisclaimerModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="disclaimer-body">
+        <p>gitstore is a directory, not a host. Every listing you see is a JSON file submitted by a member of the public and merged into this repo as a pull request — <b>gitstore does not write, review, execute, or vet the content of any linked app</b> beyond the automated schema/format checks run on submission.</p>
+        <p>Clicking <b>Install</b> or <b>Open in browser</b> takes you directly to a URL supplied by the submitter, hosted entirely outside gitstore's control. Use the same judgment you would with any link on the internet before installing something.</p>
+        <p>Submitters are required to confirm, before their pull request is opened, that they own or have the right to list the app, that it is real and working, and that it isn't malware, stolen work, or illegal content. That confirmation is self-reported — it is not independently verified by gitstore.</p>
+        <p>Every submission is reviewed publicly as a pull request under the submitter's own GitHub username before it is merged. If you spot a listing that's broken, misleading, or harmful, please <a href="#" onclick="closeDisclaimerModal();reportListing();return false;">report it</a> — reports open a public GitHub issue so anyone can follow the outcome.</p>
+        <p>This project is provided as-is, MIT licensed, with no warranty. Anyone can fork the repo and run their own copy under their own rules.</p>
+      </div>
     </div>
   </div>
 </div>
-
-<footer>
-  gitstore is open source · <a href="https://github.com/ronakksdevelopment/gitstore/blob/main/LICENSE" target="_blank">MIT licensed</a> · <a href="https://github.com/ronakksdevelopment/gitstore" target="_blank">view on GitHub</a> · listings are submitted by users and not vetted for content — see <a href="#disclaimer">disclaimer</a>
-</footer>
 
 <div class="overlay" id="overlay" onclick="if(event.target===this)closeModal()">
   <div class="modal" id="modal"></div>
@@ -692,7 +692,14 @@ function showToast(msg){
   setTimeout(()=>t.classList.remove('show'), 2600);
 }
 
-document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ closeModal(); closeAuthModal(); } });
+function openDisclaimerModal(){
+  document.getElementById('disclaimerOverlay').classList.add('open');
+}
+function closeDisclaimerModal(){
+  document.getElementById('disclaimerOverlay').classList.remove('open');
+}
+
+document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ closeModal(); closeAuthModal(); closeDisclaimerModal(); } });
 
 // ---------- GitHub token auth (pure client-side, no server) ----------
 const TOKEN_KEY = 'gitstore_gh_token';
