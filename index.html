@@ -331,7 +331,7 @@
 <div class="grid" id="grid"></div>
 
 <footer>
-  gitstore is open source · <a href="https://github.com/ronakksdevelopment/gitstore/blob/main/LICENSE" target="_blank">MIT licensed</a> · <a href="https://github.com/ronakksdevelopment/gitstore" target="_blank">view on GitHub</a> · listings are submitted by users and not vetted for content — see <a href="#" onclick="openDisclaimerModal();return false;">disclaimer</a>
+  gitstore is open source · <a href="https://github.com/ronakksdevelopment/gitstore/blob/main/LICENSE" target="_blank">MIT licensed</a> · <a href="https://github.com/ronakksdevelopment/gitstore" target="_blank">view on GitHub</a> · listings are submitted by users and not vetted for content — see <a href="javascript:void(0)" onclick="openDisclaimerModal()">disclaimer</a>
 </footer>
 
 <div class="overlay" id="disclaimerOverlay" onclick="if(event.target===this)closeDisclaimerModal()">
@@ -348,7 +348,7 @@
         <p>gitstore is a directory, not a host. Every listing you see is a JSON file submitted by a member of the public and merged into this repo as a pull request — <b>gitstore does not write, review, execute, or vet the content of any linked app</b> beyond the automated schema/format checks run on submission.</p>
         <p>Clicking <b>Install</b> or <b>Open in browser</b> takes you directly to a URL supplied by the submitter, hosted entirely outside gitstore's control. Use the same judgment you would with any link on the internet before installing something.</p>
         <p>Submitters are required to confirm, before their pull request is opened, that they own or have the right to list the app, that it is real and working, and that it isn't malware, stolen work, or illegal content. That confirmation is self-reported — it is not independently verified by gitstore.</p>
-        <p>Every submission is reviewed publicly as a pull request under the submitter's own GitHub username before it is merged. If you spot a listing that's broken, misleading, or harmful, please <a href="#" onclick="closeDisclaimerModal();reportListing();return false;">report it</a> — reports open a public GitHub issue so anyone can follow the outcome.</p>
+        <p>Every submission is reviewed publicly as a pull request under the submitter's own GitHub username before it is merged. If you spot a listing that's broken, misleading, or harmful, please <a href="javascript:void(0)" onclick="closeDisclaimerModal();reportListing()">report it</a> — reports open a public GitHub issue so anyone can follow the outcome.</p>
         <p>This project is provided as-is, MIT licensed, with no warranty. Anyone can fork the repo and run their own copy under their own rules.</p>
       </div>
     </div>
@@ -453,6 +453,16 @@
           <div style="font-family:var(--font-mono);font-size:12px;color:var(--text-secondary);margin-bottom:6px;">PWA url</div>
           <div class="search-box"><input id="f_url" type="text" placeholder="https://your-username.github.io/your-repo/" style="font-family:var(--font-mono);"></div>
         </div>
+        <div style="margin-bottom:12px;">
+          <div style="font-family:var(--font-mono);font-size:12px;color:var(--text-secondary);margin-bottom:6px;">icon url (optional — square image, e.g. your PWA's own icon.png)</div>
+          <div style="display:flex;gap:10px;align-items:center;">
+            <div class="search-box" style="flex:1;"><input id="f_icon" type="text" placeholder="https://your-username.github.io/your-repo/icon.png" style="font-family:var(--font-mono);" oninput="previewIcon()"></div>
+            <div id="iconPreviewTile" style="width:38px;height:38px;border-radius:8px;flex-shrink:0;background:var(--bg);border:1px solid var(--border-strong);display:flex;align-items:center;justify-content:center;overflow:hidden;">
+              <img id="iconPreviewImg" style="display:none;width:100%;height:100%;object-fit:cover;">
+            </div>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:5px;">Leave blank to use a colored initial tile instead — gitstore doesn't host icon images itself, only links to them.</div>
+        </div>
         <div style="display:flex;gap:12px;margin-bottom:12px;">
           <div style="flex:1;">
             <div style="font-family:var(--font-mono);font-size:12px;color:var(--text-secondary);margin-bottom:6px;">category</div>
@@ -502,6 +512,19 @@ function initialFor(name){
   return (name || '?').trim().charAt(0).toUpperCase();
 }
 
+// Renders an app's icon tile: the submitted icon URL if present, falling
+// back to the colored-initial tile if it's missing or fails to load.
+function iconTileHTML(a, sizeClass){
+  const cls = sizeClass ? `${sizeClass}` : 'card-icon';
+  if(a.icon){
+    return `<div class="${cls}" style="background:${a.color};padding:0;overflow:hidden;">
+      <img src="${a.icon}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;"
+           onerror="this.parentElement.style.padding='';this.parentElement.innerHTML='${a.initial}';">
+    </div>`;
+  }
+  return `<div class="${cls}" style="background:${a.color}">${a.initial}</div>`;
+}
+
 async function fetchAppsFromGitHub(){
   const listUrl = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/apps?ref=${GH_BRANCH}`;
   const listRes = await fetch(listUrl, { headers: { 'Accept': 'application/vnd.github+json' } });
@@ -536,6 +559,7 @@ function normalizeApp(data, filename){
     url: data.url,
     category: data.category || 'utilities',
     color: data.color || '#8B949E',
+    icon: data.icon || '',
     initial: initialFor(data.name),
     added: data.added || '',
     _file: filename
@@ -642,7 +666,7 @@ function renderGrid(){
   grid.innerHTML = filtered.map(a => `
     <div class="card" onclick="openModal('${a.id}')">
       <div class="card-top">
-        <div class="card-icon" style="background:${a.color}">${a.initial}</div>
+        ${iconTileHTML(a, 'card-icon')}
         <div>
           <div class="card-title">${a.name}</div>
           <div class="card-author">@${a.author}</div>
@@ -662,7 +686,7 @@ function openModal(id){
   const modal = document.getElementById('modal');
   modal.innerHTML = `
     <div class="modal-header">
-      <div class="modal-icon" style="background:${a.color}">${a.initial}</div>
+      ${iconTileHTML(a, 'modal-icon')}
       <div>
         <div class="modal-title">${a.name}</div>
         <div class="modal-author">submitted by @${a.author} · added ${a.added}</div>
@@ -681,7 +705,7 @@ function openModal(id){
         <div class="modal-meta-row"><span>listing</span><span>apps/${a.id}.json</span></div>
       </div>
       <div style="margin-top:14px;text-align:right;">
-        <a href="#" onclick="reportListing('${a.id}','${a.name.replace(/'/g,"\\'")}');return false;" style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);">⚑ report this listing</a>
+        <a href="javascript:void(0)" onclick="reportListing('${a.id}','${a.name.replace(/'/g,"\\'")}')" style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);">⚑ report this listing</a>
       </div>
     </div>
   `;
@@ -839,11 +863,24 @@ function openSubmitModal(){
   document.getElementById('agreeCheckbox').checked = false;
   document.getElementById('submitError').style.display = 'none';
   document.getElementById('submitProgress').style.display = 'none';
-  ['f_name','f_id','f_desc','f_longDesc','f_url'].forEach(id => document.getElementById(id).value = '');
+  ['f_name','f_id','f_desc','f_longDesc','f_url','f_icon'].forEach(id => document.getElementById(id).value = '');
+  previewIcon();
   document.getElementById('submitOverlay').classList.add('open');
 }
 function closeSubmitModal(){
   document.getElementById('submitOverlay').classList.remove('open');
+}
+function previewIcon(){
+  const url = document.getElementById('f_icon').value.trim();
+  const img = document.getElementById('iconPreviewImg');
+  if(!url){
+    img.style.display = 'none';
+    img.src = '';
+    return;
+  }
+  img.onload = () => { img.style.display = 'block'; };
+  img.onerror = () => { img.style.display = 'none'; };
+  img.src = url;
 }
 function proceedToForm(){
   if(!document.getElementById('agreeCheckbox').checked){
@@ -913,6 +950,7 @@ async function submitApp(){
   const desc = document.getElementById('f_desc').value.trim();
   const longDesc = document.getElementById('f_longDesc').value.trim();
   const url = document.getElementById('f_url').value.trim();
+  const icon = document.getElementById('f_icon').value.trim();
   const category = document.getElementById('f_category').value;
   const color = document.getElementById('f_color').value;
 
@@ -924,6 +962,10 @@ async function submitApp(){
     showSubmitError('url must start with https://');
     return;
   }
+  if(icon && !isLikelyReachableUrl(icon)){
+    showSubmitError('icon url must start with https:// (or leave it blank)');
+    return;
+  }
 
   const btn = document.getElementById('submitAppBtn');
   btn.disabled = true;
@@ -933,7 +975,7 @@ async function submitApp(){
   const branchName = `submit-${id}-${Date.now()}`;
   const fileContent = JSON.stringify({
     id, name, author: username, desc, longDesc: longDesc || desc,
-    url, category, color, icon: '',
+    url, category, color, icon: icon || '',
     added: new Date().toISOString().slice(0,10),
     schemaVersion: 1
   }, null, 2);
@@ -985,6 +1027,12 @@ async function submitApp(){
     btn.disabled = false;
     document.getElementById('submitProgress').style.display = 'none';
   }
+}
+
+// Keep the URL static — strip any stray hash (e.g. from an old bookmark
+// or shared link pointing at #disclaimer) without a reload or page jump.
+if(window.location.hash){
+  history.replaceState(null, '', window.location.pathname + window.location.search);
 }
 
 renderChips();
