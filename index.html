@@ -178,6 +178,47 @@
     color:var(--text-muted);font-family:var(--font-mono);font-size:13px;
   }
 
+  /* ---------- skeleton loading cards ---------- */
+  @keyframes shimmer{
+    0%{background-position:-200px 0;}
+    100%{background-position:calc(200px + 100%) 0;}
+  }
+  .skel{
+    background:linear-gradient(90deg, var(--bg-elevated) 25%, var(--bg-hover) 37%, var(--bg-elevated) 63%);
+    background-size:400px 100%;
+    animation:shimmer 1.4s ease-in-out infinite;
+    border-radius:5px;
+  }
+  .skel-card{
+    background:var(--bg-elevated);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:18px;
+  }
+  .skel-top{display:flex;gap:12px;align-items:flex-start;margin-bottom:14px;}
+  .skel-icon{width:44px;height:44px;border-radius:9px;flex-shrink:0;}
+  .skel-lines{flex:1;padding-top:2px;}
+  .skel-line{height:11px;margin-bottom:8px;}
+  .skel-desc-line{height:10px;margin-bottom:6px;}
+  .skel-footer{display:flex;justify-content:space-between;margin-top:14px;}
+
+  /* ---------- disclaimer ---------- */
+  .disclaimer{
+    border-top:1px solid var(--border);
+    background:var(--bg-elevated);
+  }
+  .disclaimer-inner{
+    max-width:800px;margin:0 auto;padding:40px 24px;
+    scroll-margin-top:70px;
+  }
+  .disclaimer-body p{
+    color:var(--text-secondary);font-size:13px;line-height:1.75;
+    margin-bottom:14px;
+  }
+  .disclaimer-body p:last-child{margin-bottom:0;}
+  .disclaimer-body b{color:var(--text);font-weight:600;}
+  .disclaimer-body a{color:var(--link);}
+
   /* ---------- footer ---------- */
   footer{
     border-top:1px solid var(--border);
@@ -273,8 +314,21 @@
 <div class="section-label">// apps</div>
 <div class="grid" id="grid"></div>
 
+<div class="disclaimer" id="disclaimer">
+  <div class="disclaimer-inner">
+    <div class="section-label" style="padding:0;margin-bottom:10px;">// disclaimer &amp; terms</div>
+    <div class="disclaimer-body">
+      <p>gitstore is a directory, not a host. Every listing you see is a JSON file submitted by a member of the public and merged into this repo as a pull request — <b>gitstore does not write, review, execute, or vet the content of any linked app</b> beyond the automated schema/format checks run on submission.</p>
+      <p>Clicking <b>Install</b> or <b>Open in browser</b> takes you directly to a URL supplied by the submitter, hosted entirely outside gitstore's control. Use the same judgment you would with any link on the internet before installing something.</p>
+      <p>Submitters are required to confirm, before their pull request is opened, that they own or have the right to list the app, that it is real and working, and that it isn't malware, stolen work, or illegal content. That confirmation is self-reported — it is not independently verified by gitstore.</p>
+      <p>Every submission is reviewed publicly as a pull request under the submitter's own GitHub username before it is merged. If you spot a listing that's broken, misleading, or harmful, please <a href="#" onclick="reportListing();return false;">report it</a> — reports open a public GitHub issue so anyone can follow the outcome.</p>
+      <p>This project is provided as-is, MIT licensed, with no warranty. Anyone can fork the repo and run their own copy under their own rules.</p>
+    </div>
+  </div>
+</div>
+
 <footer>
-  gitstore is open source · <a href="#">MIT licensed</a> · <a href="#">view on GitHub</a> · listings are submitted by users and not vetted for content — see disclaimer
+  gitstore is open source · <a href="https://github.com/ronakksdevelopment/gitstore/blob/main/LICENSE" target="_blank">MIT licensed</a> · <a href="https://github.com/ronakksdevelopment/gitstore" target="_blank">view on GitHub</a> · listings are submitted by users and not vetted for content — see <a href="#disclaimer">disclaimer</a>
 </footer>
 
 <div class="overlay" id="overlay" onclick="if(event.target===this)closeModal()">
@@ -519,7 +573,23 @@ function renderGrid(){
   const grid = document.getElementById('grid');
 
   if(loadState === 'loading'){
-    grid.innerHTML = `<div class="empty">fetching apps/ from GitHub…</div>`;
+    grid.innerHTML = Array.from({length:6}).map(()=>`
+      <div class="skel-card">
+        <div class="skel-top">
+          <div class="skel skel-icon"></div>
+          <div class="skel-lines">
+            <div class="skel skel-line" style="width:70%"></div>
+            <div class="skel skel-line" style="width:40%;height:9px;margin-bottom:0;"></div>
+          </div>
+        </div>
+        <div class="skel skel-desc-line" style="width:95%"></div>
+        <div class="skel skel-desc-line" style="width:60%"></div>
+        <div class="skel-footer">
+          <div class="skel skel-line" style="width:60px;height:10px;margin-bottom:0;"></div>
+          <div class="skel skel-line" style="width:70px;height:20px;margin-bottom:0;border-radius:5px;"></div>
+        </div>
+      </div>
+    `).join('');
     return;
   }
   if(loadState === 'error'){
@@ -586,6 +656,9 @@ function openModal(id){
         <div class="modal-meta-row"><span>url</span><span>${a.url}</span></div>
         <div class="modal-meta-row"><span>listing</span><span>apps/${a.id}.json</span></div>
       </div>
+      <div style="margin-top:14px;text-align:right;">
+        <a href="#" onclick="reportListing('${a.id}','${a.name.replace(/'/g,"\\'")}');return false;" style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);">⚑ report this listing</a>
+      </div>
     </div>
   `;
   document.getElementById('overlay').classList.add('open');
@@ -601,6 +674,15 @@ function installApp(name, url){
   // true one-click install requires the app to be opened first.
   showToast(`Opening ${name} — use your browser's install prompt once it loads`);
   setTimeout(()=>{ if(url && url!=='#') window.open(url,'_blank'); }, 600);
+}
+
+function reportListing(id, name){
+  const title = id ? `Report listing: ${name} (apps/${id}.json)` : 'Report a listing';
+  const body = id
+    ? `**Listing:** ${name}\n**File:** \`apps/${id}.json\`\n\n**What's wrong with it?**\n\n(please describe — broken link, malware, misleading content, not owned by submitter, etc.)`
+    : `**Which listing is this about?** (name or apps/&lt;slug&gt;.json)\n\n**What's wrong with it?**\n\n(please describe — broken link, malware, misleading content, not owned by submitter, etc.)`;
+  const url = `https://github.com/${GH_OWNER}/${GH_REPO}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}&labels=report`;
+  window.open(url, '_blank');
 }
 
 function showToast(msg){
